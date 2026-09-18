@@ -1,22 +1,28 @@
 package dev.securegateway.secure_api_gateway.config;
 
+import dev.securegateway.secure_api_gateway.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain configure(HttpSecurity http) {
-        // Permit all requests for now
-        http.authorizeHttpRequests(authorizeRequests ->
-                authorizeRequests.anyRequest().permitAll());
-        http.csrf(AbstractHttpConfigurer::disable);
+    public SecurityFilterChain configure(HttpSecurity http, JwtAuthFilter jwtAuthFilter) {
+        http
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(authorizeRequests ->
+                        authorizeRequests.requestMatchers("/api/auth/**").permitAll()
+                                .anyRequest().authenticated())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();
     }
 }

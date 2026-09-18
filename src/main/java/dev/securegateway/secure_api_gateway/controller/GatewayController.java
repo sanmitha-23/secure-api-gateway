@@ -1,5 +1,6 @@
 package dev.securegateway.secure_api_gateway.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,17 +21,19 @@ public class GatewayController {
     }
 
     @GetMapping("/users")
-    public String proxyListUsers() {
+    public String proxyListUsers(HttpServletRequest request) {
         return restClient.get()
                 .uri("/internal/users")
+                .header("Authorization", request.getHeader("Authorization"))
                 .retrieve()
                 .body(String.class);
     }
 
     @GetMapping("/users/{id}")
-    public String proxyListUser(@PathVariable String id) {
+    public String proxyListUser(@PathVariable String id, HttpServletRequest request) {
         return restClient.get()
                 .uri("/internal/users/{id}", id)
+                .header("Authorization", request.getHeader("Authorization"))
                 .retrieve()
                 .body(String.class);
     }
