@@ -1,0 +1,8 @@
+spring.application.name=secure-api-gateway
+
+management.health.redis.enabled=false
+
+downstream.base-url=http://localhost:8080
+
+security.jwt.secret=${JWT_SECRET}
+security.jwt.expiration-ms=${JWT_EXPIRATION_MS:3600000}
