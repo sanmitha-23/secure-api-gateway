@@ -1,5 +1,6 @@
 package dev.securegateway.secure_api_gateway.config;
 
+import dev.securegateway.secure_api_gateway.security.InputSanitizationFilter;
 import dev.securegateway.secure_api_gateway.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,14 +16,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain configure(HttpSecurity http, JwtAuthFilter jwtAuthFilter) {
+    public SecurityFilterChain configure(HttpSecurity http, JwtAuthFilter jwtAuthFilter,
+                                         InputSanitizationFilter inputSanitizationFilter) throws Exception {
         http
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(inputSanitizationFilter, JwtAuthFilter.class)
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests.requestMatchers("/api/auth/**").permitAll()
                                 .anyRequest().authenticated())
                 .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();
     }
 }
