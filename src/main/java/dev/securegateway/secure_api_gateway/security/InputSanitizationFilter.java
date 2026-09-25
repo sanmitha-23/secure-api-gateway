@@ -39,13 +39,18 @@ public class InputSanitizationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+        String contentType = request.getContentType();
+        boolean isMultipart = contentType != null && contentType.contains("multipart/form-data");
+
         // 1. Check every query parameter, on every request method.
-        for (Map.Entry<String, String[]> entry : request.getParameterMap().entrySet()) {
-            for (String value : entry.getValue()) {
-                if (isDangerous(value)) {
-                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    response.getWriter().write("Request rejected: potentially malicious input detected.");
-                    return; // short-circuit — do NOT call filterChain.doFilter
+        if (!isMultipart) {
+            for (Map.Entry<String, String[]> entry : request.getParameterMap().entrySet()) {
+                for (String value : entry.getValue()) {
+                    if (isDangerous(value)) {
+                        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        response.getWriter().write("Request rejected: potentially malicious input detected.");
+                        return; // short-circuit — do NOT call filterChain.doFilter
+                    }
                 }
             }
         }
@@ -53,7 +58,7 @@ public class InputSanitizationFilter extends OncePerRequestFilter {
         // 2. For POST/PUT, also check the body — and use the wrapper so the
         // controller can still read it afterward.
         String method = request.getMethod();
-        if (method.equals("POST") || method.equals("PUT")) {
+        if ((method.equals("POST") || method.equals("PUT")) && !isMultipart) {
             CachedBodyHttpServletRequest wrappedRequest = new CachedBodyHttpServletRequest(request);
             String body = wrappedRequest.getCachedBodyAsString();
 
