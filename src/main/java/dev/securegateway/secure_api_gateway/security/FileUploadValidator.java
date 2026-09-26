@@ -1,5 +1,6 @@
 package dev.securegateway.secure_api_gateway.security;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.tika.Tika;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,15 +25,23 @@ public class FileUploadValidator {
             ".exe", ".sh", ".bat", ".jsp", ".jar", ".php", ".dll", ".msi"
     );
 
+    private final MeterRegistry meterRegistry;
+
+    public FileUploadValidator(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+    }
+
     private final Tika tika = new Tika();
 
     public ValidationResult validate(MultipartFile file) {
         if (file == null || file.isEmpty()) {
+            meterRegistry.counter("gateway.security.blocked", "reason", "file_upload").increment();
             return ValidationResult.invalid("File is empty or missing.");
         }
 
         // Validate file size
         if (file.getSize() > MAX_FILE_SIZE_BYTES) {
+            meterRegistry.counter("gateway.security.blocked", "reason", "file_upload").increment();
             return ValidationResult.invalid("File exceeds maximum allowed size of 5MB.");
         }
 
@@ -42,6 +51,7 @@ public class FileUploadValidator {
             String lower = filename.toLowerCase();
             for (String blocked : BLOCKED_EXTENSIONS) {
                 if (lower.endsWith(blocked)) {
+                    meterRegistry.counter("gateway.security.blocked", "reason", "file_upload").increment();
                     return ValidationResult.invalid("File extension is not allowed: " + blocked);
                 }
             }
@@ -54,6 +64,7 @@ public class FileUploadValidator {
             String detectedType = tika.detect(file.getInputStream());
 
             if (!ALLOWED_MIME_TYPES.contains(detectedType)) {
+                meterRegistry.counter("gateway.security.blocked", "reason", "file_upload").increment();
                 return ValidationResult.invalid(
                         "Detected file content type is not allowed: " + detectedType);
             }
@@ -62,12 +73,14 @@ public class FileUploadValidator {
             // A mismatch (e.g. an .exe renamed to photo.png) is itself suspicious.
             String claimedType = file.getContentType();
             if (claimedType != null && !claimedType.equals(detectedType)) {
+                meterRegistry.counter("gateway.security.blocked", "reason", "file_upload").increment();
                 return ValidationResult.invalid(
                         "File content does not match its declared type (claimed: "
                                 + claimedType + ", detected: " + detectedType + ").");
             }
 
         } catch (IOException e) {
+            meterRegistry.counter("gateway.security.blocked", "reason", "file_upload").increment();
             return ValidationResult.invalid("Could not read file content for validation.");
         }
 

@@ -1,5 +1,6 @@
 package dev.securegateway.secure_api_gateway.security;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,11 +24,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final Duration WINDOW = Duration.ofSeconds(60);
 
     private final StringRedisTemplate redisTemplate;
+    private final MeterRegistry meterRegistry;
 
     private static final Logger logger = LoggerFactory.getLogger(RateLimitFilter.class);
 
-    public RateLimitFilter(StringRedisTemplate redisTemplate) {
+    public RateLimitFilter(StringRedisTemplate redisTemplate, MeterRegistry meterRegistry) {
         this.redisTemplate = redisTemplate;
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -62,6 +65,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             response.setStatus(429);
             response.setHeader("Retry-After", String.valueOf(WINDOW.getSeconds()));
             response.getWriter().write("Rate limit exceeded. Try again later.");
+            meterRegistry.counter("gateway.security.blocked", "reason", "rate_limit").increment();
             return;
         }
 

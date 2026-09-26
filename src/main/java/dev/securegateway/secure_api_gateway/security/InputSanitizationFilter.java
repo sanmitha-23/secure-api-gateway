@@ -1,5 +1,6 @@
 package dev.securegateway.secure_api_gateway.security;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,6 +20,12 @@ import java.util.regex.Pattern;
 public class InputSanitizationFilter extends OncePerRequestFilter {
 
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<\\s*[a-zA-Z!/]");
+
+    private final MeterRegistry meterRegistry;
+
+    public InputSanitizationFilter(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+    }
 
     private static final List<Pattern> SQLI_PATTERNS = List.of(
             // Quote followed by a boolean tautology: ' OR '1'='1  or  ' or 1=1
@@ -81,6 +88,7 @@ public class InputSanitizationFilter extends OncePerRequestFilter {
         // If the sanitized output does NOT equal the original canonicalized
         // string, dangerous markup was present — return true.
         if (HTML_TAG_PATTERN.matcher(canonicalized).find()) {
+            meterRegistry.counter("gateway.security.blocked", "reason", "xss").increment();
             return true;
         }
 
@@ -93,11 +101,12 @@ public class InputSanitizationFilter extends OncePerRequestFilter {
         // that's exactly the mistake that caused your false positives before.
         for (Pattern pattern : SQLI_PATTERNS) {
             if (pattern.matcher(canonicalized).find()) {
+                meterRegistry.counter("gateway.security.blocked", "reason", "sqli").increment();
                 return true;
             }
         }
 
-        return false; // replace with real logic
+        return false;
     }
 
     private String canonicalize(String input) {
