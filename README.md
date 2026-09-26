@@ -41,7 +41,7 @@ once - rather than patching each endpoint individually.
 Client → [Input Sanitization Filter] → [JWT Auth Filter] → [Rate Limit Filter] → Controller → (proxies to) → Downstream Service
 
 
-Each filter is a single, centralized checkpoint — the pattern this
+Each filter is a single, centralized checkpoint - the pattern this
 project is built around, rather than repeating checks per endpoint.
 
 ## Tech stack
@@ -55,7 +55,7 @@ AssertJ
 **Requires:** JDK 25, Docker & Docker Compose
 
 ```bash
-export JWT_SECRET="<a real 256-bit base64 secret — generate via: openssl rand -base64 32>"
+export JWT_SECRET="<a real 256-bit base64 secret - generate via: openssl rand -base64 32>"
 docker compose up --build
 ```
 
@@ -74,7 +74,7 @@ This starts:
 curl http://localhost:8080/api/gateway/users \
   -H "Authorization: Bearer <token from above>"
 
-# Try without a token — should 403:
+# Try without a token - should 403:
 curl http://localhost:8080/api/gateway/users
 
 # Trigger a blocked request:
@@ -83,7 +83,7 @@ curl "http://localhost:8080/api/gateway/users?search=%27%20OR%20%271%27%3D%271" 
 ```
 ## Screenshots
 
-**Grafana dashboard — blocked requests by reason:**
+**Grafana dashboard - blocked requests by reason:**
 ![Grafana dashboard showing blocked requests by reason](docs/screenshots/grafana-blocked-requests.png)
 
 **A SQL injection attempt blocked on the live deployment:**
@@ -98,7 +98,7 @@ curl "http://localhost:8080/api/gateway/users?search=%27%20OR%20%271%27%3D%271" 
   actual defense against SQL injection is parameterized queries at
   the database layer, which this demo gateway doesn't have (no real
   DB layer exists behind the mock downstream service). The filters
-  here catch known attack *shapes* via narrow, structural regex —
+  here catch known attack *shapes* via narrow, structural regex -
   deliberately avoiding single-keyword blacklisting, which produces
   false positives on legitimate text (e.g. rejecting `O'Brien` for
   containing an apostrophe).
@@ -128,4 +128,4 @@ curl "http://localhost:8080/api/gateway/users?search=%27%20OR%20%271%27%3D%271" 
 
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
