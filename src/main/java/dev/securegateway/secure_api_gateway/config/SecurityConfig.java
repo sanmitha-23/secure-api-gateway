@@ -27,7 +27,7 @@ public class SecurityConfig {
                 .addFilterAfter(rateLimitFilter, JwtAuthFilter.class)
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests.requestMatchers("/api/auth/**", "/", "/actuator/health",
-                                        "/actuator/prometheus").permitAll()
+                                        "/actuator/prometheus", "/error").permitAll()
                                 .anyRequest().authenticated())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
