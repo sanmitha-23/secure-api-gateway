@@ -10,6 +10,10 @@ spring.servlet.multipart.max-request-size=5MB
 
 spring.data.redis.url=${SPRING_DATA_REDIS_URL:redis://localhost:6379}
 
-management.endpoints.web.exposure.include=health,prometheus,metrics
+management.endpoints.web.exposure.include=health
+server.forward-headers-strategy=native
 
 server.port=${PORT:8080}
+
+demo.username=${DEMO_USERNAME}
+demo.password=${DEMO_PASSWORD}

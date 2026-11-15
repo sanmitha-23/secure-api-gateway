@@ -13,6 +13,7 @@ public class HomeController {
         return Map.of(
                 "name", "Secure API Gateway",
                 "status", "running",
+                "auth", "POST /api/auth/login  {\"username\":\"demo\",\"password\":\"demo1234\"}",
                 "docs", "https://github.com/sanmitha-23/secure-api-gateway",
                 "health", "/actuator/health"
         );

@@ -36,6 +36,82 @@ once - rather than patching each endpoint individually.
 - **Fully containerized** - one `docker compose up` starts the
   gateway, Redis, Prometheus, and Grafana together
 
+## Try it live
+
+The demo is deployed at **https://secure-api-gateway-wgv0.onrender.com**
+
+> Free-tier note: the service sleeps after 15 minutes of inactivity.
+> The first request may take up to 60 seconds to wake it.
+> To keep it warm, add a UptimeRobot monitor pinging `/actuator/health` every 5 minutes.
+
+### 1. Get a token
+
+```bash
+curl -s -X POST https://secure-api-gateway-wgv0.onrender.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"demo","password":"demo1234"}' | jq .
+```
+Expected:
+```json
+{ "token": "<jwt>" }
+```
+
+```bash
+TOKEN=<paste the token value here>
+BASE=https://secure-api-gateway-wgv0.onrender.com
+```
+
+### 2. Normal request — passes
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" "$BASE/api/gateway/users"
+```
+Expected: `[{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]`
+
+### 3. SQL injection — blocked
+
+```bash
+curl -s "$BASE/api/gateway/users?search=%27%20OR%20%271%27%3D%271" \
+  -H "Authorization: Bearer $TOKEN"
+```
+Expected: `Request rejected: potentially malicious input detected.`
+
+### 4. XSS — blocked
+
+```bash
+curl -s "$BASE/api/gateway/users?comment=%3Cscript%3Ealert(1)%3C%2Fscript%3E" \
+  -H "Authorization: Bearer $TOKEN"
+```
+Expected: `Request rejected: potentially malicious input detected.`
+
+### 5. Spoofed file upload — rejected
+
+```bash
+echo "this is not an image" > fake.png
+curl -s -X POST "$BASE/api/gateway/upload" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@fake.png"
+```
+Expected: `Rejected: File content does not match its declared type`
+
+### 6. Rate limit — triggers after 20 requests
+
+```bash
+for i in $(seq 1 25); do
+  curl -s -o /dev/null -w '%{http_code} ' -H "Authorization: Bearer $TOKEN" "$BASE/api/gateway/users"
+done; echo
+```
+Expected: `200 200 200 … 200 429 429 429 429 429`
+(20 successes, then 5 rejections)
+
+### 7. Grafana dashboard
+
+Prometheus and Grafana run locally alongside the app.
+Start the full stack with `docker compose up --build` and open
+`http://localhost:3000` (login `admin` / `admin`).
+
+![Grafana dashboard showing blocked requests by reason](docs/screenshots/grafana-blocked-requests.png)
+
 ## Architecture
 
 Client → [Input Sanitization Filter] → [JWT Auth Filter] → [Rate Limit Filter] → Controller → (proxies to) → Downstream Service
