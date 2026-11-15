@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -46,7 +48,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        if (request.getRequestURI().startsWith("/internal/")) {
+        if (isGatewaySelfCall(request)) {
             filterChain.doFilter(request, response); // internal calls don't count against the client's limit
             return;
         }
@@ -70,6 +72,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isGatewaySelfCall(HttpServletRequest request) {
+        try {
+            return request.getRequestURI().startsWith("/internal/")
+                    && InetAddress.getByName(request.getRemoteAddr()).isLoopbackAddress();
+        } catch (UnknownHostException e) {
+            return false;
+        }
     }
 
     private String resolveIdentifier(HttpServletRequest request) {
