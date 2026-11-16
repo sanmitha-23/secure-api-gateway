@@ -31,6 +31,9 @@ public class InputSanitizationFilter extends OncePerRequestFilter {
             // Quote followed by a boolean tautology: ' OR '1'='1  or  ' or 1=1
             Pattern.compile("(?i)'\\s*(or|and)\\s+('[^']*'?|\\d+)\\s*=\\s*('[^']*'?|\\d+)"),
 
+            // Unquoted numeric boolean tautology: 1 OR 1=1
+            Pattern.compile("(?i)\\b\\d+\\s+(or|and)\\s+\\d+\\s*=\\s*\\d+\\b"),
+
             // SQL comment sequence used to truncate a query, appearing right after
             // a quote or semicolon (not just "--" anywhere, which could be legitimate text)
             Pattern.compile("(?i)['\";]\\s*(--|#|/\\*)"),

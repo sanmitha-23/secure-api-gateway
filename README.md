@@ -112,6 +112,46 @@ Start the full stack with `docker compose up --build` and open
 
 ![Grafana dashboard showing blocked requests by reason](docs/screenshots/grafana-blocked-requests.png)
 
+## Monitoring & Observability
+
+The application exposes custom security metrics through Spring Boot Actuator and Micrometer. Prometheus collects these metrics, and Grafana provides a dashboard to visualize blocked requests.
+
+The local Docker Compose setup includes:
+
+- **Prometheus** – scrapes application metrics from the gateway.
+- **Grafana** – visualizes security events using Prometheus as its data source.
+- **Micrometer counters** – track blocked requests by rejection reason.
+
+### Security Metrics
+
+The `gateway.security.blocked` counter is tagged by rejection reason:
+
+| Reason | Description |
+|---|---|
+| `sqli` | Requests blocked by SQL injection detection |
+| `xss` | Requests blocked by cross-site scripting detection |
+| `file_upload` | Uploads rejected by file validation |
+| `rate_limit` | Requests rejected after exceeding the rate limit |
+
+### View the Dashboard Locally
+
+Start the application and monitoring stack:
+
+```bash
+docker compose up -d --build
+```
+
+Access the services locally:
+
+| Service | URL |
+|---|---|
+| Gateway | http://localhost:8080 |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 |
+| Gateway metrics | http://localhost:8080/actuator/prometheus |
+
+Open Grafana and view the **Blocked Requests by Reason** dashboard.
+
 ## Architecture
 
 Client → [Input Sanitization Filter] → [JWT Auth Filter] → [Rate Limit Filter] → Controller → (proxies to) → Downstream Service
@@ -168,25 +208,12 @@ curl "http://localhost:8080/api/gateway/users?search=%27%20OR%20%271%27%3D%271" 
 **Live health check:**
 ![Health check returning UP](docs/screenshots/health-check-live.png)
 
-## Known limitations (deliberate, documented trade-offs)
+## Limitations
 
-- **SQLi/XSS detection is defense-in-depth, not the real fix.** The
-  actual defense against SQL injection is parameterized queries at
-  the database layer, which this demo gateway doesn't have (no real
-  DB layer exists behind the mock downstream service). The filters
-  here catch known attack *shapes* via narrow, structural regex -
-  deliberately avoiding single-keyword blacklisting, which produces
-  false positives on legitimate text (e.g. rejecting `O'Brien` for
-  containing an apostrophe).
-- **No login endpoint yet** - tokens are currently generated via a
-  unit test rather than a real `/api/auth/login` flow.
-- **Prometheus/Grafana are not hosted alongside the live Render
-  deployment** - Render's free tier only covers web services, not
-  the private-service tier these would need. They run locally and
-  can be pointed at either the local container or the live URL.
-- **Rate limiting uses a fixed-window counter**, not a token bucket -
-  simpler to reason about, with a known trade-off (a burst right at
-  a window boundary can allow up to 2x the limit briefly).
+- **Mock downstream service:** No real database is connected behind the downstream service. The project focuses on gateway-level security controls.
+- **Local monitoring:** Prometheus and Grafana are available through Docker Compose for local demonstration; they are not hosted with the public Render deployment.
+- **Fixed-window rate limiting:** The Redis-backed rate limiter uses fixed 60-second windows. Requests near a window boundary may temporarily exceed the nominal limit across two adjacent windows.
+- **Heuristic input detection:** SQL injection and XSS detection use pattern matching and canonicalization. These controls are defense-in-depth measures, not replacements for parameterized queries, output encoding, and other application-level protections.
 
 ## What I'd improve at scale
 

@@ -5,6 +5,8 @@ services:
       - "8080:8080"
     environment:
       - JWT_SECRET=${JWT_SECRET}
+      - DEMO_USERNAME=${DEMO_USERNAME}
+      - DEMO_PASSWORD=${DEMO_PASSWORD}
       - SPRING_DATA_REDIS_URL=redis://redis:6379
       - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,prometheus
     depends_on:
