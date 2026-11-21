@@ -194,6 +194,8 @@
             <div class="actions">
                 <a class="button primary" href="https://github.com/sanmitha-23/secure-api-gateway"
                    target="_blank" rel="noopener noreferrer">Explore the code</a>
+                <a class="button" href="https://github.com/sanmitha-23/secure-api-gateway#try-it-live"
+                   target="_blank" rel="noopener noreferrer">Try the live API</a>
                 <a class="button" href="/actuator/health">Health status</a>
             </div>
         </section>
@@ -230,6 +232,20 @@
                     <h3>Containerized setup</h3>
                     <p>Docker Compose runs the gateway with Redis and monitoring services.</p>
                 </article>
+            </div>
+        </section>
+
+        <section id="endpoints">
+            <h2>Demo endpoints</h2>
+            <div class="card">
+                <p><strong>Public</strong></p>
+                <p><code>POST /api/auth/login</code> — obtain a JWT</p>
+                <p><code>GET /actuator/health</code> — application health</p>
+
+                <p style="margin-top: 18px;"><strong>JWT required</strong></p>
+                <p><code>GET /api/gateway/users</code> — list mock users</p>
+                <p><code>GET /api/gateway/users/{id}</code> — get a mock user</p>
+                <p><code>POST /api/gateway/upload</code> — validate an uploaded file</p>
             </div>
         </section>
 
