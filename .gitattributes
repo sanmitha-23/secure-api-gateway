@@ -1,2 +1,4 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
+# Normalize text files to LF line endings
+* text=auto eol=lf

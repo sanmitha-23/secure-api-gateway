@@ -37,7 +37,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         Collections.emptyList());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (JwtException e) {
-                logger.debug(e.getMessage());
+                logger.debug("Invalid JWT token: " + e.getMessage());
+
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setHeader("WWW-Authenticate", "Bearer error=\"invalid_token\"");
+                return;
             }
             filterChain.doFilter(request, response);
         }
