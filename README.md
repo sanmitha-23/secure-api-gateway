@@ -229,6 +229,32 @@ curl -i http://localhost:8080/api/gateway/users
 - **Fixed-window rate limiting:** The Redis-backed rate limiter uses fixed 60-second windows. Requests near a window boundary may temporarily exceed the nominal limit across two adjacent windows.
 - **Heuristic input detection:** SQL injection and XSS detection use pattern matching and canonicalization. These controls are defense-in-depth measures, not replacements for parameterized queries, output encoding, and other application-level protections.
 
+## Design Decisions and Trade-offs
+
+### Structural pattern matching over keyword blacklists
+
+The input sanitization filter uses canonicalization and pattern-based detection rather than blocking requests based on suspicious keywords alone. Keyword blacklists can reject legitimate input containing terms such as `select` or `script`, while missing payloads that use encoding or formatting variations.
+
+This approach improves detection of common SQL injection and XSS payloads, but it is still heuristic. It cannot replace parameterized queries, context-aware output encoding, or other protections at the application layer.
+
+### File content validation over client-supplied metadata
+
+File uploads are validated using Apache Tika to inspect file content and detect its type. The validator does not trust the filename or the `Content-Type` header, since both are controlled by the client and can be spoofed.
+
+Magic-byte and content-based detection provides a stronger signal than metadata alone, but it does not prove that a file is harmless. Production systems should also consider file size limits, storage isolation, malware scanning, and safe file handling.
+
+### Redis-backed rate limiting over in-memory counters
+
+Rate-limit state is stored in Redis instead of local application memory. This allows multiple gateway instances to share the same request counters and avoids each instance enforcing an independent limit.
+
+The current implementation uses a fixed-window algorithm because it is straightforward and efficient. Its trade-off is the possibility of bursts around window boundaries. A sliding-window or token-bucket algorithm would provide smoother traffic control at higher scale.
+
+### A mock downstream service for focused gateway testing
+
+The downstream endpoint is intentionally mocked and runs within the same application deployment. This keeps the project focused on demonstrating gateway-level security controls without introducing a separate service or database.
+
+The trade-off is that this setup does not demonstrate network-level isolation, service-to-service authentication, or failure handling across independently deployed services.
+
 ## What I'd improve at scale
 
 - Replace the environment-configured demo credentials with a persistent user store and proper password hashing
