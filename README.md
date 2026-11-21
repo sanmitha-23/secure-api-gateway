@@ -110,8 +110,6 @@ Prometheus and Grafana run locally alongside the app.
 Start the full stack with `docker compose up --build` and open
 `http://localhost:3000` (login `admin` / `admin`).
 
-![Grafana dashboard showing blocked requests by reason](docs/screenshots/grafana-blocked-requests.png)
-
 ## Monitoring & Observability
 
 The application exposes custom security metrics through Spring Boot Actuator and Micrometer. Prometheus collects these metrics, and Grafana provides a dashboard to visualize blocked requests.
@@ -154,11 +152,18 @@ Open Grafana and view the **Blocked Requests by Reason** dashboard.
 
 ## Architecture
 
-Client → [Input Sanitization Filter] → [JWT Auth Filter] → [Rate Limit Filter] → Controller → (proxies to) → Downstream Service
+```mermaid
+flowchart TD
+    A[Client] --> B[Input Sanitization Filter]
+    B --> C[JWT Authentication Filter]
+    C --> D[Redis Rate Limit Filter]
+    D --> E[Gateway Controller]
+    E -->|HTTP request - RestClient| F[Internal Mock Downstream Controller]
+```
 
+The gateway makes an HTTP request to an internal mock endpoint in the same application deployment; the downstream service is not separately deployed.
 
-Each filter is a single, centralized checkpoint - the pattern this
-project is built around, rather than repeating checks per endpoint.
+Each filter is a centralized checkpoint, rather than repeating checks per endpoint.
 
 ## Tech stack
 
@@ -182,21 +187,30 @@ This starts:
 
 ### Try it out
 
+Get a JWT using the demo credentials:
+
 ```bash
-# Get a token (no login endpoint yet - generate one via the test):
-./mvnw test -Dtest=JwtUtilTest
-
-# Call a protected route:
-curl http://localhost:8080/api/gateway/users \
-  -H "Authorization: Bearer <token from above>"
-
-# Try without a token - should 403:
-curl http://localhost:8080/api/gateway/users
-
-# Trigger a blocked request:
-curl "http://localhost:8080/api/gateway/users?search=%27%20OR%20%271%27%3D%271" \
-  -H "Authorization: Bearer <token>"
+curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"demo","password":"demo1234"}'
 ```
+
+Copy the `token` value from the response and set it:
+```bash
+TOKEN="<paste-your-token-here>"
+```
+
+Call a protected route:
+```bash
+curl http://localhost:8080/api/gateway/users \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Try a request without a token:
+```bash
+curl -i http://localhost:8080/api/gateway/users
+```
+
 ## Screenshots
 
 **Grafana dashboard - blocked requests by reason:**
@@ -217,8 +231,7 @@ curl "http://localhost:8080/api/gateway/users?search=%27%20OR%20%271%27%3D%271" 
 
 ## What I'd improve at scale
 
-- A real login endpoint backed by a persistent user store, not a
-  hardcoded demo user
+- Replace the environment-configured demo credentials with a persistent user store and proper password hashing
 - Move from fixed-window to a sliding-window or token-bucket rate
   limiter to close the window-boundary burst issue
 - Split the downstream mock service into an actually separate
