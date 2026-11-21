@@ -74,7 +74,7 @@ Expected: `[{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]`
 curl -s "$BASE/api/gateway/users?search=%27%20OR%20%271%27%3D%271" \
   -H "Authorization: Bearer $TOKEN"
 ```
-Expected: `Request rejected: potentially malicious input detected.`
+Expected: HTTP 400 with `Request rejected: potentially malicious input detected.`
 
 ### 4. XSS — blocked
 
@@ -82,7 +82,7 @@ Expected: `Request rejected: potentially malicious input detected.`
 curl -s "$BASE/api/gateway/users?comment=%3Cscript%3Ealert(1)%3C%2Fscript%3E" \
   -H "Authorization: Bearer $TOKEN"
 ```
-Expected: `Request rejected: potentially malicious input detected.`
+Expected: HTTP 400 with `Request rejected: potentially malicious input detected.`
 
 ### 5. Spoofed file upload — rejected
 
@@ -92,7 +92,7 @@ curl -s -X POST "$BASE/api/gateway/upload" \
   -H "Authorization: Bearer $TOKEN" \
   -F "file=@fake.png"
 ```
-Expected: `Rejected: File content does not match its declared type`
+Expected: HTTP 400 with `Rejected: File content does not match its declared type (claimed: image/png, detected: text/plain).`
 
 ### 6. Rate limit — triggers after 20 requests
 
