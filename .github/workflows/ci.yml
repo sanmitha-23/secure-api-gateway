@@ -22,3 +22,6 @@ jobs:
 
       - name: Run tests
         run: ./mvnw -B test
+
+      - name: Build Docker image
+        run: docker build -t secure-api-gateway:ci .
